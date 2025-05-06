@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Distorção Interativa de Imagem</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <!-- Se usar addons do p5.js como p5.sound, inclua-os aqui -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script> -->
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita barras de rolagem */
+            background-color: black; /* Fundo preto da página */
+            width: 100vw; /* Largura total da viewport */
+            height: 100vh; /* Altura total da viewport */
+            display: flex; /* Para centralizar o canvas se ele tiver bordas ou não preencher 100% */
+            justify-content: center;
+            align-items: center;
+        }
+        /* O canvas p5.js será criado aqui pelo script */
+        canvas {
+            display: block; /* Remove espaço extra abaixo do canvas se for inline */
+        }
+    </style>
+</head>
+<body>
+    <!--
+        IMPORTANTE:
+        Os scripts 'shader.js' e 'sketch.js' usam a sintaxe de módulo ES6 (import/export).
+        Portanto, eles devem ser carregados com type="module".
+        O navegador resolverá as dependências.
+    -->
+    <script type="module" src="shader.js"></script>
+    <script type="module" src="sketch.js"></script>
+
+    <!-- Se você tiver um Controls.js e ele NÃO for um módulo ES6,
+         e for projetado para ser global, você pode incluí-lo como um script normal.
+         Se ele FOR um módulo ES6, ele deve ser importado dentro do sketch.js.
+         Exemplo: <script src="Controls.js"></script> -->
+</body>
+</html>
