@@ -1,39 +1,250 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Distorção Interativa de Imagem</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-    <!-- Se usar addons do p5.js como p5.sound, inclua-os aqui -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script> -->
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Evita barras de rolagem */
-            background-color: black; /* Fundo preto da página */
-            width: 100vw; /* Largura total da viewport */
-            height: 100vh; /* Altura total da viewport */
-            display: flex; /* Para centralizar o canvas se ele tiver bordas ou não preencher 100% */
-            justify-content: center;
-            align-items: center;
-        }
-        /* O canvas p5.js será criado aqui pelo script */
-        canvas {
-            display: block; /* Remove espaço extra abaixo do canvas se for inline */
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arte Interativa de Desconstrução</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: sans-serif;
+    }
+    #sketch-holder {
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    p {
+        margin-bottom: 10px;
+    }
+  </style>
 </head>
 <body>
-    <!--
-        IMPORTANTE:
-        Os scripts 'shader.js' e 'sketch.js' usam a sintaxe de módulo ES6 (import/export).
-        Portanto, eles devem ser carregados com type="module".
-        O navegador resolverá as dependências.
-    -->
-    <script type="module" src="shader.js"></script>
-    <script type="module" src="sketch.js"></script>
-    <script src="Controls.js"></script>
+  <h1>Arte Interativa: Desconstrução de Imagem</h1>
+  <div id="controls">
+    <p>Carregue sua imagem e arraste o mouse (ou dedo) sobre ela para desconstruí-la!</p>
+    <div id="file-input-holder"></div>
+    <button id="resetButton" style="margin-top:10px;">Reiniciar Imagem</button>
+  </div>
+  <div id="sketch-holder" style="margin-top:20px;">
+    </div>
+
+  <script>
+    // p5.js sketch for interactive image deconstruction
+
+    let originalImage;
+    let deconstructedImage; // p5.Graphics buffer
+    // Imagem placeholder (Crédito: Joos van Cleve, Domínio Público, via Wikimedia Commons)
+    let imgUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Mona_Lisa_-_Joos_van_Cleve_%28Louvre%2C_INV_5939%29.jpg/800px-Mona_Lisa_-_Joos_van_Cleve_%28Louvre%2C_INV_5939%29.jpg';
+    let imgLoaded = false;
+    let input; // Para o seletor de arquivos
+    let resetButton;
+
+    function preload() {
+      originalImage = loadImage(imgUrl, 
+        () => { 
+          console.log("Imagem padrão carregada.");
+          imgLoaded = true; 
+        }, 
+        (err) => {
+          console.error("Erro ao carregar imagem padrão. Tente carregar uma imagem local.", err);
+          // Não define imgLoaded = true, setup lidará com isso
+        }
+      );
+    }
+
+    function setup() {
+      let canvasWidth = 600;
+      let canvasHeight = 400;
+
+      if (imgLoaded && originalImage.width > 0) {
+        canvasWidth = originalImage.width;
+        canvasHeight = originalImage.height;
+      }
+      
+      let canvas = createCanvas(canvasWidth, canvasHeight);
+      canvas.parent('sketch-holder');
+
+      if (imgLoaded && originalImage.width > 0) {
+        initializeDeconstructedImage();
+      } else {
+        background(200);
+        textAlign(CENTER, CENTER);
+        fill(0);
+        text("Imagem padrão não pôde ser carregada.\nPor favor, carregue uma imagem usando o botão abaixo.", width / 2, height / 2);
+      }
+      
+      input = createFileInput(handleFile);
+      input.parent('file-input-holder');
+
+      resetButton = select('#resetButton'); // Usando select para pegar o botão do HTML
+      resetButton.mousePressed(resetImage);
+
+      pixelDensity(1); 
+      console.log("Sketch iniciado. Arraste o mouse sobre a imagem para aplicar o efeito.");
+    }
+
+    function initializeDeconstructedImage() {
+      if (originalImage && originalImage.width > 0) {
+        // Ajusta o canvas se a imagem carregada for diferente da padrão/anterior
+        if (width !== originalImage.width || height !== originalImage.height) {
+            resizeCanvas(originalImage.width, originalImage.height);
+        }
+        
+        deconstructedImage = createGraphics(originalImage.width, originalImage.height);
+        deconstructedImage.image(originalImage, 0, 0); 
+        imgLoaded = true;
+        console.log("Buffer de desconstrução inicializado com a imagem.");
+      } else {
+         imgLoaded = false; // Garante que não tentaremos desenhar/interagir
+         background(200);
+         textAlign(CENTER, CENTER);
+         fill(0);
+         text("Falha ao processar a imagem.", width / 2, height / 2);
+      }
+    }
+
+    function handleFile(file) {
+      if (file.type === 'image') {
+        originalImage = loadImage(file.data, () => {
+          console.log("Nova imagem carregada pelo usuário.");
+          initializeDeconstructedImage();
+        }, (err) => {
+          console.error("Erro ao carregar imagem do usuário.", err);
+          imgLoaded = false;
+          background(200);
+          textAlign(CENTER, CENTER);
+          fill(0);
+          text("Erro ao carregar a imagem selecionada.", width/2, height/2);
+        });
+      } else {
+        console.log('Não é um arquivo de imagem!');
+        imgLoaded = false; // Mantém desabilitado se o arquivo não for válido
+        background(200);
+        textAlign(CENTER, CENTER);
+        fill(0);
+        text("Por favor, selecione um arquivo de imagem (.jpg, .png, etc.).", width/2, height/2);
+      }
+    }
+
+    function resetImage() {
+        if (originalImage && originalImage.width > 0) {
+            console.log("Reiniciando imagem.");
+            initializeDeconstructedImage();
+        } else {
+            console.log("Nenhuma imagem original para reiniciar.");
+             background(200);
+             textAlign(CENTER, CENTER);
+             fill(0);
+             text("Carregue uma imagem para reiniciar.", width / 2, height / 2);
+        }
+    }
+
+    function draw() {
+      if (!imgLoaded || !deconstructedImage) {
+        // Se ainda não carregou ou falhou, o texto já foi exibido no setup ou handleFile
+        // Poderia adicionar um loop de "Carregando..." aqui se quisesse
+        if (!originalImage || (originalImage && originalImage.width === 0 && !imgLoaded)) {
+             background(220);
+             fill(0);
+             textAlign(CENTER, CENTER);
+             text("Aguardando carregamento de imagem...", width / 2, height / 2);
+        }
+        return;
+      }
+      
+      // Exibe a imagem (potencialmente) desconstruída
+      background(255); // Limpa o canvas principal, caso a imagem seja menor
+      image(deconstructedImage, 0, 0); 
+    }
+
+    // Chamado quando o mouse é arrastado (funciona para toque e arrasto em mobile)
+    function mouseDragged() {
+        if (imgLoaded && deconstructedImage) {
+            // Verifica se o mouse está dentro dos limites da imagem/canvas
+            if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+                applyDeconstructionEffect(mouseX, mouseY);
+            }
+        }
+        return false; // Previne comportamento padrão do navegador para toque (como scroll)
+    }
+    
+    // Adiciona funcionalidade para touchMoved chamar mouseDragged
+    // para garantir consistência em dispositivos de toque
+    function touchMoved() {
+        if (imgLoaded && deconstructedImage) {
+            if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+                applyDeconstructionEffect(mouseX, mouseY);
+            }
+        }
+        return false; // Previne comportamento padrão do navegador
+    }
+
+
+    function applyDeconstructionEffect(mx, my) {
+      if (!deconstructedImage) return;
+
+      let brushRadius = constrain(max(originalImage.width, originalImage.height) * 0.08, 30, 100) ; // Área de influência ao redor do mouse
+      let numOperations = 15; // Quantas operações de "esmagamento" por frame
+      
+      // Operamos no buffer gráfico deconstructedImage
+      deconstructedImage.push(); // Salva o estilo de desenho atual
+      deconstructedImage.noStroke();
+
+      for (let i = 0; i < numOperations; i++) {
+        let blockSize = random(5, constrain(brushRadius * 0.4, 5, 50)); // Tamanho do bloco
+        let maxOffset = brushRadius * 0.5; // Quão longe o bloco pode ser movido
+
+        // Pega um ponto aleatório dentro do pincel para amostrar
+        let angle = random(TWO_PI);
+        let distFromCenter = random(brushRadius * 0.8); 
+        
+        let sampleX = mx + cos(angle) * distFromCenter;
+        let sampleY = my + sin(angle) * distFromCenter;
+
+        // Garante que as coordenadas de amostra sejam inteiras e dentro dos limites
+        let sX = floor(constrain(sampleX - blockSize / 2, 0, deconstructedImage.width - blockSize));
+        let sY = floor(constrain(sampleY - blockSize / 2, 0, deconstructedImage.height - blockSize));
+
+        // Pega um bloco de pixels da imagem desconstruída atual
+        if (sX < 0 || sY < 0 || sX + floor(blockSize) > deconstructedImage.width || sY + floor(blockSize) > deconstructedImage.height || blockSize <=0) continue; 
+        
+        let blockToMove;
+        try {
+            blockToMove = deconstructedImage.get(sX, sY, floor(blockSize), floor(blockSize));
+        } catch (e) {
+            console.warn("Erro ao usar .get(): ", sX, sY, floor(blockSize), floor(blockSize), e);
+            continue;
+        }
+
+
+        // Escolhe uma nova posição para desenhar este bloco, com um pequeno desvio
+        let offsetX = random(-maxOffset, maxOffset);
+        let offsetY = random(-maxOffset, maxOffset);
+        
+        let targetX = sX + offsetX; // Baseia o deslocamento na posição de amostragem
+        let targetY = sY + offsetY;
+
+        // Garante que as coordenadas de destino sejam inteiras e dentro dos limites
+        let tX = floor(constrain(targetX, 0, deconstructedImage.width - blockSize));
+        let tY = floor(constrain(targetY, 0, deconstructedImage.height - blockSize));
+
+        if (blockToMove && blockToMove.width > 0 && blockToMove.height > 0) { 
+            deconstructedImage.image(blockToMove, tX, tY);
+        }
+      }
+      deconstructedImage.pop(); // Restaura o estilo de desenho
+    }
+  </script>
 </body>
 </html>
