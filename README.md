@@ -17,16 +17,6 @@ The artwork dynamically selects an image based on the screen's orientation (land
 * **Download Artwork:** An icon button (downward arrow) lets you download your unique, deconstructed version of the image as a `.png` file, timestamped for uniqueness.
 * **Simple Interface:** Minimalist controls and a persistent footer displaying the artwork's title and author.
 
-## Demo
-
-*(It's highly recommended to add a GIF or a static screenshot here showing the deconstruction effect in action. You can also link to a live demo if you host it online.)*
-
-**Example Placeholder:**
-To add a GIF:
-1. Record a short video of the interaction.
-2. Convert the video to an optimized GIF (e.g., using online tools like ezgif.com).
-3. Place the GIF in your repository (e.g., in a `docs` folder) and link to it.
-
 ## How to Run / Setup
 
 This project is built using [p5.js](https://p5js.org/).
