@@ -41,7 +41,7 @@ new p5((p) => {
 
 	
 	p.preload = () => {
-		suaImagemCarregada = p.loadImage('assets/your-image.jpg');
+		suaImagemCarregada = p.loadImage('assets/yourimage.jpg');
 	}
 	
 	p.setup = () => {
