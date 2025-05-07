@@ -51,9 +51,9 @@ new p5((p) => {
         tempBlurBuffer = p.createGraphics(WIDTH, HEIGHT, p.WEBGL); // Para ping-pong de blur
 
         // Anti-aliasing pode melhorar a qualidade visual
-        originalImageBuffer.setAttributes('antialias', true);
-        processedImageBuffer.setAttributes('antialias', true);
-        tempBlurBuffer.setAttributes('antialias', true);
+        // originalImageBuffer.setAttributes('antialias', true);
+        // processedImageBuffer.setAttributes('antialias', true);
+        // tempBlurBuffer.setAttributes('antialias', true);
     }
 
     p.preload = () => {
