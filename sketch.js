@@ -5,7 +5,7 @@ import { mountFlex } from "https://cdn.jsdelivr.net/npm/p5.flex@0.2.0/src/p5.fle
 // Se Controls.js for um módulo ES6, ele deve ser importado corretamente.
 // Se for um script global p5, pode não precisar de 'import'.
 // import { mountControl } from "./Controls.js"; 
-import { vert, DistortFrag, BlurFrag, GrainFrag, MixFrag } from "./shader.js"; // Removi TexFrag pois não estava claro seu uso final aqui
+import { vert, DistortFrag, BlurFrag, GrainFrag, MixFrag } from "shader.js"; // Removi TexFrag pois não estava claro seu uso final aqui
 
 // mountFlex(p5);
 // mountControl(p5); // Descomente se Controls.js estiver configurado
@@ -29,7 +29,7 @@ new p5((p) => {
 	const SCALE = 1.0; // Escala geral para shaders (se usado)
 	const SPEED = 0.3; // Velocidade da animação do tempo (t)
 
-    const IMAGE_PATH = './your-image.jpg'; // <--- COLOQUE O CAMINHO DA SUA IMAGEM AQUI
+    const IMAGE_PATH = 'your-image.jpg'; // <--- COLOQUE O CAMINHO DA SUA IMAGEM AQUI
 
     // Função para atualizar dimensões e recriar recursos dependentes
     function updateSizing() {
