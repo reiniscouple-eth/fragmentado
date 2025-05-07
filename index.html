@@ -30,19 +30,32 @@
       top: 15px;
       right: 15px;
       z-index: 10; /* Controles acima do canvas */
+      display: flex; 
+      flex-direction: column; 
     }
     #controls button {
-      background-color: rgba(50, 50, 50, 0.7);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.5);
-      padding: 8px 12px;
+      background-color: rgba(40, 40, 40, 0.6); 
+      color: white; 
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 0; 
+      width: 40px;  
+      height: 40px; 
       cursor: pointer;
-      border-radius: 4px;
-      font-size: 12px;
+      border-radius: 5px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+      transition: background-color 0.2s ease; 
     }
     #controls button:hover {
-      background-color: rgba(70, 70, 70, 0.9);
+      background-color: rgba(60, 60, 60, 0.8);
     }
+    #controls button:active {
+      background-color: rgba(30, 30, 30, 0.9);
+    }
+    /* O margin-top no botão de download é aplicado inline no HTML */
+
     #footer {
       position: fixed;
       bottom: 0;
@@ -65,7 +78,16 @@
     </div>
 
   <div id="controls">
-    <button id="resetButton" title="Reiniciar Imagem">REINICIAR</button>
+    <button id="resetButton" title="Reiniciar Imagem">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px; height:18px;">
+        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+    </button>
+    <button id="downloadButton" title="Baixar Imagem Alterada" style="margin-top: 10px;">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px; height:18px;">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+      </svg>
+    </button>
   </div>
   
   <div id="footer">
@@ -80,16 +102,14 @@
     let deconstructedImage; // p5.Graphics buffer
     let imgLoaded = false;
 
-    // Variáveis para dimensionamento e posicionamento da imagem
     let drawX, drawY, drawW, drawH;
-    let imgScale; // Escala efetiva do conteúdo da imagem
+    let imgScale; 
 
     function preload() {
-      // Determina a orientação e escolhe a imagem ANTES de carregar
-      if (window.innerWidth >= window.innerHeight) { // Paisagem ou quadrado
+      if (window.innerWidth >= window.innerHeight) { 
         chosenImgPath = imgPathA;
         console.log("Modo paisagem detectado, carregando:", chosenImgPath);
-      } else { // Retrato
+      } else { 
         chosenImgPath = imgPathB;
         console.log("Modo retrato detectado, carregando:", chosenImgPath);
       }
@@ -101,7 +121,7 @@
         }, 
         (err) => {
           console.error("ERRO AO CARREGAR IMAGEM:", chosenImgPath, "- Verifique se o arquivo existe na pasta 'assets' e se o caminho está correto.", err);
-          imgLoaded = false; // Mantém como false para exibir mensagem de erro
+          imgLoaded = false; 
         }
       );
     }
@@ -115,8 +135,7 @@
         calculateImageDisplayDimensions();
         initializeDeconstructedImage();
       } else {
-        // Mensagem de erro se o carregamento em preload falhou
-        background(20); // Fundo escuro para erro
+        background(20); 
         textAlign(CENTER, CENTER);
         fill(200);
         textSize(16);
@@ -128,8 +147,12 @@
         resetButton.mousePressed(resetImage);
       }
 
+      let downloadButton = select('#downloadButton');
+      if (downloadButton) {
+        downloadButton.mousePressed(downloadImage);
+      }
+
       pixelDensity(1); 
-      // console.log("Sketch iniciado. Arraste o mouse/dedo sobre a imagem.");
     }
 
     function calculateImageDisplayDimensions() {
@@ -139,34 +162,29 @@
       let canvasH = windowHeight;
       let imgW = originalImage.width;
       let imgH = originalImage.height;
-
       let canvasAspect = canvasW / canvasH;
       let imageAspect = imgW / imgH;
 
-      // Lógica para "cover" (cobrir a tela, mantendo aspect ratio, cortando excessos)
       if (imageAspect > canvasAspect) { 
-        // Imagem mais larga que o canvas: ajustar altura, centralizar largura
         drawH = canvasH;
         drawW = imgW * (canvasH / imgH);
         drawX = (canvasW - drawW) / 2;
         drawY = 0;
         imgScale = canvasH / imgH;
       } else { 
-        // Imagem mais alta que o canvas (ou mesma proporção): ajustar largura, centralizar altura
         drawW = canvasW;
         drawH = imgH * (canvasW / imgW);
         drawX = 0;
         drawY = (canvasH - drawH) / 2;
         imgScale = canvasW / imgW;
       }
-      // console.log(`Dimensões de desenho: X:${drawX.toFixed(2)}, Y:${drawY.toFixed(2)}, W:${drawW.toFixed(2)}, H:${drawH.toFixed(2)}, Scale:${imgScale.toFixed(2)}`);
     }
 
     function initializeDeconstructedImage() {
       if (originalImage && originalImage.width > 0) {
         deconstructedImage = createGraphics(originalImage.width, originalImage.height);
         deconstructedImage.image(originalImage, 0, 0); 
-        imgLoaded = true; // Garante que está true
+        imgLoaded = true; 
         console.log("Buffer de desconstrução (re)inicializado.");
       } else {
          imgLoaded = false;
@@ -179,76 +197,69 @@
             console.log("Reiniciando imagem desconstruída.");
             initializeDeconstructedImage(); 
         } else {
-            console.log("Nenhuma imagem carregada para reiniciar. Tentando recarregar a imagem definida pela orientação...");
-            // Tenta recarregar a imagem baseada na orientação atual
-            // Isso é um pouco mais complexo pois loadImage é assíncrono
-            // Uma abordagem mais simples é apenas alertar o usuário ou não fazer nada se não houver img original
+            console.log("Nenhuma imagem carregada para reiniciar.");
             if(!originalImage || originalImage.width === 0) {
                  alert("Não há imagem original carregada. Verifique os arquivos em 'assets/'.");
             }
         }
     }
 
+    function downloadImage() {
+      if (imgLoaded && deconstructedImage) {
+        let timestamp = year() + nf(month(),2,'0') + nf(day(),2,'0') + "_" + nf(hour(),2,'0') + nf(minute(),2,'0') + nf(second(),2,'0');
+        let filename = `Fragmentado_by_Reiniscouple_${timestamp}.png`;
+        
+        console.log("Baixando imagem como:", filename);
+        deconstructedImage.save(filename);
+      } else {
+        console.log("Nenhuma imagem para baixar.");
+        alert("Não há imagem carregada ou processada para baixar.");
+      }
+    }
+
     function draw() {
       if (!imgLoaded || !deconstructedImage) {
-        // Se o carregamento falhou, a mensagem de erro do setup é exibida.
-        // Se estivesse carregando ativamente (improvável aqui pois preload bloqueia):
-        if (!imgLoaded) { // Reforça a mensagem se algo deu muito errado
+        if (!imgLoaded) { 
             background(20); fill(200); textAlign(CENTER, CENTER); textSize(16);
             text(`Aguardando imagem ou falha no carregamento: ${chosenImgPath || 'Nenhuma imagem selecionada.'}`, width/2, height/2);
         }
         return;
       }
       
-      background(0); // Limpa o canvas principal com preto
+      background(0); 
       image(deconstructedImage, drawX, drawY, drawW, drawH); 
     }
 
     function getMappedMouseCoordinates() {
         if (!originalImage || !imgLoaded || !deconstructedImage) return null;
-
         let mx = mouseX;
         let my = mouseY;
-
-        if (mx < drawX || mx > drawX + drawW || my < drawY || my > drawY + drawH) {
-            return null; // Mouse fora da área da imagem visível
-        }
-
+        if (mx < drawX || mx > drawX + drawW || my < drawY || my > drawY + drawH) return null;
         let imgMouseX = (mx - drawX) / imgScale;
         let imgMouseY = (my - drawY) / imgScale;
-        
         imgMouseX = constrain(imgMouseX, 0, deconstructedImage.width - 1);
         imgMouseY = constrain(imgMouseY, 0, deconstructedImage.height - 1);
-
         return { x: imgMouseX, y: imgMouseY };
     }
 
     function mouseDragged() {
         if (imgLoaded && deconstructedImage) {
             let mappedCoords = getMappedMouseCoordinates();
-            if (mappedCoords) {
-                applyDeconstructionEffect(mappedCoords.x, mappedCoords.y);
-            }
+            if (mappedCoords) applyDeconstructionEffect(mappedCoords.x, mappedCoords.y);
         }
         return false; 
     }
 
-    function touchMoved() { // Garante funcionamento em mobile
-        mouseDragged(); // Chama a mesma lógica
+    function touchMoved() { 
+        mouseDragged(); 
         return false;
     }
     
     function windowResized() {
       resizeCanvas(windowWidth, windowHeight);
       if (imgLoaded && originalImage && originalImage.width > 0) {
-        // Recalcula como a imagem atual deve ser exibida na nova dimensão da tela
         calculateImageDisplayDimensions(); 
-        // Nota: Não troca a imagem (paisagem/retrato) dinamicamente aqui,
-        // pois isso exigiria recarregar a imagem, o que é assíncrono e
-        // geralmente feito em preload. A escolha da imagem é feita no carregamento inicial.
       } else if (!imgLoaded) {
-        // Se a imagem não carregou, e a tela foi redimensionada,
-        // pode ser útil tentar exibir a mensagem de erro novamente ou uma mensagem genérica.
         background(20); textAlign(CENTER, CENTER); fill(200); textSize(16);
         text(`Erro ao carregar imagem. Verifique 'assets/' e atualize.`, width / 2, height / 2);
       }
@@ -256,10 +267,9 @@
 
     function applyDeconstructionEffect(imgMx, imgMy) {
       if (!deconstructedImage || !originalImage) return;
-
       let baseBrushDim = min(originalImage.width, originalImage.height);
-      let brushRadius = constrain(baseBrushDim * 0.1, 25, 180) ; // Aumentei um pouco o raio relativo
-      let numOperations = 20; // Aumentei as operações para um efeito mais denso
+      let brushRadius = constrain(baseBrushDim * 0.1, 25, 180) ; 
+      let numOperations = 20; 
       
       deconstructedImage.push();
       deconstructedImage.noStroke();
@@ -267,13 +277,10 @@
       for (let i = 0; i < numOperations; i++) {
         let blockSize = random(5, constrain(brushRadius * 0.35, 5, 60)); 
         let maxOffset = brushRadius * 0.6;    
-
         let angle = random(TWO_PI);
-        let distFromCenter = random(brushRadius); // Permite pegar blocos de toda a área do pincel
-        
+        let distFromCenter = random(brushRadius); 
         let sampleX = imgMx + cos(angle) * distFromCenter;
         let sampleY = imgMy + sin(angle) * distFromCenter;
-
         let sX = floor(constrain(sampleX - blockSize / 2, 0, originalImage.width - blockSize));
         let sY = floor(constrain(sampleY - blockSize / 2, 0, originalImage.height - blockSize));
 
@@ -282,17 +289,12 @@
         let blockToMove;
         try {
             blockToMove = deconstructedImage.get(sX, sY, floor(blockSize), floor(blockSize));
-        } catch (e) {
-            // console.warn("Erro em .get(): ", sX, sY, floor(blockSize), floor(blockSize), e);
-            continue; // Pula esta iteração se .get() falhar
-        }
+        } catch (e) { continue; }
 
         let offsetX = random(-maxOffset, maxOffset);
         let offsetY = random(-maxOffset, maxOffset);
-        
         let targetX = sX + offsetX; 
         let targetY = sY + offsetY;
-
         let tX = floor(constrain(targetX, 0, originalImage.width - blockSize));
         let tY = floor(constrain(targetY, 0, originalImage.height - blockSize));
 
