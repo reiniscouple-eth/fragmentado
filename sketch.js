@@ -42,14 +42,14 @@ new p5((p) => {
 	// 5. Em draw(), substitua 'gfx.image(minhaImagemPlaceholder, 0, 0, WIDTH, HEIGHT);'
 	//    por 'gfx.image(suaImagemCarregada, 0, 0, WIDTH, HEIGHT);'
 
-	/*
+	
 	p.preload = () => {
-		suaImagemCarregada = p.loadImage('caminho/para/sua/imagem.jpg');
+		suaImagemCarregada = p.loadImage('/your-image.jpg');
 	}
-	*/
+	
 
 	// Função para criar uma imagem placeholder (substitua pelo carregamento da sua imagem)
-	const createPlaceholderImage = (pg) => {
+	/*const createPlaceholderImage = (pg) => {
 		let placeholder = pg.createGraphics(WIDTH, HEIGHT);
 		placeholder.background(p.random(100, 200), p.random(100, 200), p.random(100, 200));
 		placeholder.noStroke();
@@ -62,7 +62,7 @@ new p5((p) => {
 		placeholder.textAlign(pg.CENTER, pg.CENTER);
 		placeholder.text("Use sua Imagem Aqui!", WIDTH / 2, HEIGHT / 2);
 		return placeholder;
-	};
+	};*/
 
 	p.setup = () => {
 		p.createCanvas(WIDTH, HEIGHT)
@@ -84,7 +84,7 @@ new p5((p) => {
 		initTex() // Inicializa a textura base em 'tex'
 
 		// Cria a imagem placeholder (REMOVA ISSO SE USAR p.loadImage() em preload)
-		minhaImagemPlaceholder = createPlaceholderImage(p);
+		/*minhaImagemPlaceholder = createPlaceholderImage(p);*/
 
 		color = hex2rgb(p.random(palette))
 
@@ -102,7 +102,7 @@ new p5((p) => {
 		// 1. Desenha a imagem (placeholder ou a sua carregada) no buffer gfx
 		// Se você carregou 'suaImagemCarregada' em preload(), use-a aqui:
 		// gfx.image(suaImagemCarregada, 0, 0, WIDTH, HEIGHT);
-		gfx.image(minhaImagemPlaceholder, 0, 0, WIDTH, HEIGHT);
+		gfx.image(suaImagemCarregada, 0, 0, WIDTH, HEIGHT);
 
 
 		if (NO_SHADER) {
