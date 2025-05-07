@@ -19,12 +19,9 @@ new p5((p) => {
 	let TexPass, BlurPass, GrainPass, MixPass, ImageDistortPass
 	let tex, gfx
 	let t, color
+	let suaImagemCarregada 
 
-	// SUA IMAGEM: Descomente a linha abaixo e a função preload() para usar sua imagem
-	// let suaImagemCarregada;
-	let suaImagemCarregada; // Placeholder até você carregar sua imagem
-
-	const palette = ["#560100", "#060626", "#151f05", "#331d00", "#2c0033"] // Adicionei mais cores
+	const palette = ["#560100", "#060626", "#151f05", "#331d00", "#2c0033"] 
 	
 	// Parâmetros para a distorção da imagem
 	const IMAGE_NOISE_STRENGTH = 0.05 // Quão forte é a distorção pelo ruído
@@ -47,23 +44,6 @@ new p5((p) => {
 		suaImagemCarregada = p.loadImage('assets/your-image.jpg');
 	}
 	
-
-	// Função para criar uma imagem placeholder (substitua pelo carregamento da sua imagem)
-	/*const createPlaceholderImage = (pg) => {
-		let placeholder = pg.createGraphics(WIDTH, HEIGHT);
-		placeholder.background(p.random(100, 200), p.random(100, 200), p.random(100, 200));
-		placeholder.noStroke();
-		for (let i = 0; i < 15; i++) {
-			placeholder.fill(p.random(150, 255), p.random(150, 255), p.random(150, 255), p.random(150,220));
-			placeholder.ellipse(p.random(WIDTH), p.random(HEIGHT), p.random(50, 150), p.random(50, 150));
-		}
-		placeholder.fill(0);
-		placeholder.textSize(32);
-		placeholder.textAlign(pg.CENTER, pg.CENTER);
-		placeholder.text("Use sua Imagem Aqui!", WIDTH / 2, HEIGHT / 2);
-		return placeholder;
-	};*/
-
 	p.setup = () => {
 		p.createCanvas(WIDTH, HEIGHT)
 		p.flex({ container: { padding: "20px" } })
