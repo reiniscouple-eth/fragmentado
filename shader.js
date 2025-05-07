@@ -17,9 +17,7 @@ export const TexFrag = `#version 300 es
 
 	uniform vec2 texelSize;
 	uniform vec2 canvasSize;
-	// uniform float time; // Não usado aqui, mas commonUniform pode passar
-	// uniform vec2 mouse; // Não usado aqui
-
+	
 	${Shox.noiseMath}
 	${Shox.snoise3D}
 	${Shox.snoise3DImage}
@@ -35,7 +33,7 @@ export const TexFrag = `#version 300 es
 		noise *= 1.-.02*snoise3DImage(uv*vec2(1.,  1.),  10., 1.5, .5, vec3(0.)).r;
 
 		fragColor = vec4(vec3(noise)*vec3(1., .95, .95), 1.);
-		fragColor *= fragColor; // Deixa mais escuro
+		fragColor *= fragColor; 
 	}
 `
 
@@ -43,15 +41,15 @@ export const TexFrag = `#version 300 es
 export const ImageDistortFrag = `#version 300 es
 	precision mediump float;
 
-	uniform sampler2D tex0; // Imagem de entrada
+	uniform sampler2D tex0; 
 	uniform vec2 texelSize;
 	uniform vec2 canvasSize;
-	uniform vec2 mouse;     // Posição do mouse (0 a 1)
+	uniform vec2 mouse;     
 	uniform float time;
-	uniform float noiseStrength; // Para controlar a intensidade da distorção
-	uniform float mouseInfluenceScale; // Escala da influência do mouse (quão espalhada é a influência)
+	uniform float noiseStrength; 
+	uniform float mouseInfluenceScale; 
 
-	${Shox.noiseMath} // Para smoothstep
+	${Shox.noiseMath} 
 	${Shox.snoise3D} 
 
 	in vec2 vTexCoord;
@@ -60,21 +58,13 @@ export const ImageDistortFrag = `#version 300 es
 	void main() {
 		vec2 uv = vTexCoord;
 
-		// Influência do mouse: maior quando o mouse está perto do pixel (uv)
-		// 'mouseInfluenceScale' ajusta o raio de influência.
-		// smoothstep(edge0, edge1, x): 0 se x <= edge0, 1 se x >= edge1
-		// length(uv - mouse) é a distância do pixel ao mouse.
-		// Queremos que 'influence' seja 1 perto do mouse e 0 longe.
-		// A 'mouseInfluenceScale' aqui pode ser pensada como o 'raio' de influência.
-		// Se mouseInfluenceScale for, por exemplo, 0.5, a influência total (1.0) ocorre a uma distância 0
-		// e decai para 0 a uma distância de 0.5.
 		float dist_to_mouse = length(uv - mouse);
 		float influence = smoothstep(mouseInfluenceScale, 0.0, dist_to_mouse);
 
 
-		// Gera um deslocamento 2D usando ruído Simplex 3D (x,y,tempo)
-		float offsetX = snoise3D(vec3(uv * 5.0, time)) * 2.0 - 1.0; // range -1 a 1
-		float offsetY = snoise3D(vec3(uv * 5.0 + vec2(23.4, -15.6), time)) * 2.0 - 1.0; // semente diferente para Y
+		
+		float offsetX = snoise3D(vec3(uv * 5.0, time)) * 2.0 - 1.0; 
+		float offsetY = snoise3D(vec3(uv * 5.0 + vec2(23.4, -15.6), time)) * 2.0 - 1.0; 
 		vec2 noise_offset = vec2(offsetX, offsetY);
 
 		// Aplica o deslocamento, modulado pela força do ruído e influência do mouse
@@ -93,17 +83,17 @@ export const BlurFrag = `#version 300 es
 	uniform vec2 canvasSize;
 	uniform vec2 mouse;
 	uniform float time;
-	uniform float scale; // Usado para a influência do mouse no blur
+	uniform float scale; 
 	uniform vec2 direction;
 
-	${Shox.blur(3)} // Kernel de blur, ex: 3x3
+	${Shox.blur(3)} 
 
 	in vec2 vTexCoord;
 	out vec4 fragColor;
 	void main() {
 		vec2 uv = vTexCoord;
-		// 'scale' aqui afeta o quão espalhada é a influência do mouse para o blur
-		float weight = smoothstep(1.5 / scale, 0., length(uv-mouse)); // Ajustado para que 'scale' aumente a área de efeito
+		
+		float weight = smoothstep(1.5 / scale, 0., length(uv-mouse)); 
 		vec4 originalColor = texture(tex0, uv);
 		vec4 blurredColor = blur(uv, tex0, texelSize, direction);
 		fragColor = mix(originalColor, blurredColor, weight);
@@ -119,7 +109,7 @@ export const GrainFrag = `#version 300 es
 	uniform vec2 canvasSize;
 	uniform vec2 mouse;
 	uniform float time;
-	uniform float scale; // Usado para a influência do mouse no grain
+	uniform float scale; 
 
 	${Shox.displace}
 	${Shox.hash}
