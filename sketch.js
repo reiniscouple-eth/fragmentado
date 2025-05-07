@@ -22,7 +22,7 @@ new p5((p) => {
 
 	// SUA IMAGEM: Descomente a linha abaixo e a função preload() para usar sua imagem
 	// let suaImagemCarregada;
-	let minhaImagemPlaceholder; // Placeholder até você carregar sua imagem
+	let suaImagemCarregada; // Placeholder até você carregar sua imagem
 
 	const palette = ["#560100", "#060626", "#151f05", "#331d00", "#2c0033"] // Adicionei mais cores
 	
