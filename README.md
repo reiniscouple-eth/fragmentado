@@ -22,7 +22,7 @@ The artwork dynamically selects an image based on the screen's orientation (land
 This project is built using [p5.js](https://p5js.org/).
 
 1.  **Download or Clone:**
-    * Clone this repository: `git clone <your-repo-url>`
+    * Clone this repository
     * Or download the project files as a ZIP.
 
 2.  **File Structure:**
