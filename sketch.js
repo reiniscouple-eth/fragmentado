@@ -1,242 +1,201 @@
-// sketch.js
+import { mountFlex } from "https://cdn.jsdelivr.net/npm/p5.flex@0.2.0/src/p5.flex.min.mjs"
+import { mountControl } from "./Controls.js"
+import { createNoise3D } from "https://cdn.skypack.dev/simplex-noise@4.0.0" // Ainda usado pelo TexPass implicitamente, pode ser removido se TexPass for simplificado
+import { vert, TexFrag, BlurFrag, GrainFrag, MixFrag, ImageDistortFrag } from "./shader.js"
 
-import { mountFlex } from "https://cdn.jsdelivr.net/npm/p5.flex@0.2.0/src/p5.flex.min.mjs";
-// Certifique-se que Controls.js existe ou remova a importação se não for usá-lo.
-// Se Controls.js for um módulo ES6, ele deve ser importado corretamente.
-// Se for um script global p5, pode não precisar de 'import'.
-// import { mountControl } from "./Controls.js"; 
-import { vert, DistortFrag, BlurFrag, GrainFrag, MixFrag } from "shader.js"; // Removi TexFrag pois não estava claro seu uso final aqui
-
-// mountFlex(p5);
-// mountControl(p5); // Descomente se Controls.js estiver configurado
+mountFlex(p5)
+mountControl(p5)
 
 new p5((p) => {
-    let WIDTH, HEIGHT;
-	let PIXEL_DENSITY = 1; // Ajuste para performance (menor = mais rápido)
-	let CANVAS_SIZE;
-	let TEXEL_SIZE;
+	// const snoiseSeed = { x: p.random(), y: p.random() } // Não diretamente usado pela distorção da imagem, mas TexPass pode usar algo similar.
+	// const snoiseX3D = createNoise3D(() => snoiseSeed.x)
+	// const snoiseY3D = createNoise3D(() => snoiseSeed.y)
 
-	let DistortPass, BlurPass, GrainPass, MixPass;
-	let originalImageBuffer, processedImageBuffer, tempBlurBuffer; // Buffers gráficos
-	let t, selectedColorTint;
-    let userImage;
+	const [WIDTH, HEIGHT] = [600, 600]
+	const PIXEL_DENSITY = 1
+	const CANVAS_SIZE = [WIDTH, HEIGHT]
+	const TEXEL_SIZE = [1 / (WIDTH * PIXEL_DENSITY), 1 / (HEIGHT * PIXEL_DENSITY)]
 
-	const palette = ["#560100", "#060626", "#151f05", "#FFFFFF", "#FF69B4", "#00FFFF"]; // Paleta de cores
-    const DISTORT_STRENGTH = 70; // Quão forte a distorção
-    const MOUSE_EFFECT_RADIUS = 0.25; // Raio de influência do mouse (0.0 a 1.0+)
-	const NO_SHADER = false; // Defina como true para desabilitar shaders para depuração
-	const UNREAL = p.random([false, true]); // Aplicar filtros p5 extras?
-	const SCALE = 1.0; // Escala geral para shaders (se usado)
-	const SPEED = 0.3; // Velocidade da animação do tempo (t)
+	let TexPass, BlurPass, GrainPass, MixPass, ImageDistortPass
+	let tex, gfx
+	let t, color
 
-    const IMAGE_PATH = 'your-image.jpg'; // <--- COLOQUE O CAMINHO DA SUA IMAGEM AQUI
+	// SUA IMAGEM: Descomente a linha abaixo e a função preload() para usar sua imagem
+	// let suaImagemCarregada;
+	let minhaImagemPlaceholder; // Placeholder até você carregar sua imagem
 
-    // Função para atualizar dimensões e recriar recursos dependentes
-    function updateSizing() {
-        WIDTH = p.windowWidth;
-        HEIGHT = p.windowHeight;
-        CANVAS_SIZE = [WIDTH, HEIGHT];
-        TEXEL_SIZE = [1 / (WIDTH * PIXEL_DENSITY), 1 / (HEIGHT * PIXEL_DENSITY)];
-    }
+	const palette = ["#560100", "#060626", "#151f05", "#331d00", "#2c0033"] // Adicionei mais cores
+	
+	// Parâmetros para a distorção da imagem
+	const IMAGE_NOISE_STRENGTH = 0.05 // Quão forte é a distorção pelo ruído
+	const IMAGE_MOUSE_INFLUENCE_SCALE = 2.0 // Escala da influência do mouse na distorção (similar ao antigo SCALE)
+	const ANIMATION_SPEED = 0.3 // Velocidade da animação do ruído na distorção
 
-    // Função para criar/recriar buffers gráficos
-    function setupGraphicsBuffers() {
-        // Remove buffers antigos se existirem (para windowResized)
-        if (originalImageBuffer) originalImageBuffer.remove();
-        if (processedImageBuffer) processedImageBuffer.remove();
-        if (tempBlurBuffer) tempBlurBuffer.remove();
+	const NO_SHADER = false // Mantenha false para ver os efeitos
+	const UNREAL = p.random([false, true]) // Efeitos finais opcionais
 
-        originalImageBuffer = p.createGraphics(WIDTH, HEIGHT, p.WEBGL);
-		processedImageBuffer = p.createGraphics(WIDTH, HEIGHT, p.WEBGL);
-        tempBlurBuffer = p.createGraphics(WIDTH, HEIGHT, p.WEBGL); // Para ping-pong de blur
+	// IMPORTANTE: Para carregar sua própria imagem:
+	// 1. Crie uma pasta 'assets' (ou qualquer nome) no seu projeto e coloque sua imagem lá.
+	// 2. Descomente a função preload() abaixo.
+	// 3. Mude 'caminho/para/sua/imagem.jpg' para o caminho real da sua imagem.
+	// 4. Em setup(), remova a linha 'minhaImagemPlaceholder = createPlaceholderImage(p);'
+	// 5. Em draw(), substitua 'gfx.image(minhaImagemPlaceholder, 0, 0, WIDTH, HEIGHT);'
+	//    por 'gfx.image(suaImagemCarregada, 0, 0, WIDTH, HEIGHT);'
 
-        // Anti-aliasing pode melhorar a qualidade visual
-        // originalImageBuffer.setAttributes('antialias', true);
-        // processedImageBuffer.setAttributes('antialias', true);
-        // tempBlurBuffer.setAttributes('antialias', true);
-    }
+	/*
+	p.preload = () => {
+		suaImagemCarregada = p.loadImage('caminho/para/sua/imagem.jpg');
+	}
+	*/
 
-    p.preload = () => {
-        userImage = p.loadImage(IMAGE_PATH,
-            () => console.log("Imagem carregada com sucesso!"),
-            (e) => {
-                console.error(`Erro ao carregar imagem: ${IMAGE_PATH}`, e);
-                // Você pode carregar uma imagem padrão aqui ou mostrar uma mensagem
-                // userImage = p.loadImage('fallback-image.jpg');
-            }
-        );
-    }
+	// Função para criar uma imagem placeholder (substitua pelo carregamento da sua imagem)
+	const createPlaceholderImage = (pg) => {
+		let placeholder = pg.createGraphics(WIDTH, HEIGHT);
+		placeholder.background(p.random(100, 200), p.random(100, 200), p.random(100, 200));
+		placeholder.noStroke();
+		for (let i = 0; i < 15; i++) {
+			placeholder.fill(p.random(150, 255), p.random(150, 255), p.random(150, 255), p.random(150,220));
+			placeholder.ellipse(p.random(WIDTH), p.random(HEIGHT), p.random(50, 150), p.random(50, 150));
+		}
+		placeholder.fill(0);
+		placeholder.textSize(32);
+		placeholder.textAlign(pg.CENTER, pg.CENTER);
+		placeholder.text("Use sua Imagem Aqui!", WIDTH / 2, HEIGHT / 2);
+		return placeholder;
+	};
 
 	p.setup = () => {
-        updateSizing(); // Define WIDTH, HEIGHT, etc.
-		p.createCanvas(WIDTH, HEIGHT);
-		p.pixelDensity(PIXEL_DENSITY);
+		p.createCanvas(WIDTH, HEIGHT)
+		p.flex({ container: { padding: "20px" } })
+		p.containerBgColor(51)
+		p.parentBgColor(51)
+		p.pixelDensity(PIXEL_DENSITY)
 
-        // Se você usa p5.flex, pode querer configurá-lo aqui,
-        // mas para um canvas fullscreen simples, não é estritamente necessário.
-        // p.flex({ container: { padding: "0px" } });
+		tex = p.createGraphics(WIDTH, HEIGHT, p.WEBGL)
+		gfx = p.createGraphics(WIDTH, HEIGHT, p.WEBGL)
 
-        setupGraphicsBuffers(); // Cria os buffers com os tamanhos corretos
+		// Carrega os shaders
+		TexPass = p.createShader(vert, TexFrag)
+		ImageDistortPass = p.createShader(vert, ImageDistortFrag)
+		BlurPass = p.createShader(vert, BlurFrag)
+		GrainPass = p.createShader(vert, GrainFrag)
+		MixPass = p.createShader(vert, MixFrag)
 
-        // Criar shaders (o objeto shader pode ser criado uma vez)
-		DistortPass = originalImageBuffer.createShader(vert, DistortFrag);
-		BlurPass = originalImageBuffer.createShader(vert, BlurFrag);
-		GrainPass = originalImageBuffer.createShader(vert, GrainFrag);
-		MixPass = originalImageBuffer.createShader(vert, MixFrag);
+		initTex() // Inicializa a textura base em 'tex'
 
-		initOriginalImageBuffer(); // Desenha a imagem carregada no buffer inicial
+		// Cria a imagem placeholder (REMOVA ISSO SE USAR p.loadImage() em preload)
+		minhaImagemPlaceholder = createPlaceholderImage(p);
 
-		selectedColorTint = hex2rgb(p.random(palette));
+		color = hex2rgb(p.random(palette))
 
-        // Se você tiver mountControl e PressLoopToggle:
-		// p.PressLoopToggle(" "); // Pausa/retoma com espaço
-
-		p.describe(`Uma imagem é interativamente distorcida pela posição do mouse, com efeitos de pós-processamento como blur e granulação. A imagem ocupa toda a tela.`);
+		p.PressLoopToggle(" ") // Pausa/resume com Espaço
+		
+		p.describe(`Image art with shader distortion effects. Based on "Hilbert" by Zaron Chen.`)
 	}
 
-    p.windowResized = () => {
-        updateSizing();
-        p.resizeCanvas(WIDTH, HEIGHT);
-        setupGraphicsBuffers(); // Recria buffers com novo tamanho
-        initOriginalImageBuffer(); // Redesenha a imagem no buffer redimensionado
-        console.log("Janela redimensionada. Canvas e buffers atualizados.");
-    }
-
 	p.draw = () => {
-        // Verifica se a imagem foi carregada e os buffers estão prontos
-        if (!userImage || !userImage.width || !originalImageBuffer || !processedImageBuffer || !tempBlurBuffer) {
-            p.background(10, 0, 0); // Fundo escuro se algo estiver faltando
-            p.fill(255);
-            p.textAlign(p.CENTER, p.CENTER);
-            p.textSize(20);
-            p.text("Carregando recursos ou erro ao carregar imagem...\nVerifique o console.", p.width / 2, p.height / 2);
-            return;
-        }
+		t = (p.frameCount / 60) * ANIMATION_SPEED
 
-		t = (p.frameCount / 60) * SPEED;
+		p.background(0) // Limpa o canvas principal
+		gfx.clear()    // Limpa o buffer gfx
 
-		p.background(0); // Limpa o canvas principal (não estritamente necessário se a imagem final cobrir tudo)
+		// 1. Desenha a imagem (placeholder ou a sua carregada) no buffer gfx
+		// Se você carregou 'suaImagemCarregada' em preload(), use-a aqui:
+		// gfx.image(suaImagemCarregada, 0, 0, WIDTH, HEIGHT);
+		gfx.image(minhaImagemPlaceholder, 0, 0, WIDTH, HEIGHT);
 
-        // 1. Distorcer a imagem original
-        // Lê de originalImageBuffer, escreve em processedImageBuffer
-        applyDistortion(originalImageBuffer, processedImageBuffer);
 
-		if (NO_SHADER) { // Se shaders estão desabilitados, mostra apenas a imagem distorcida
-            p.image(processedImageBuffer, 0, 0, WIDTH, HEIGHT);
-            return;
-        }
+		if (NO_SHADER) {
+			p.image(gfx, 0, 0) // Se não houver shaders, apenas desenha a imagem
+			return
+		}
 
-        // Pipeline de Efeitos:
-        // Pass 2: Blur Horizontal (lê de processedImageBuffer, escreve em tempBlurBuffer)
-        applyBlur(processedImageBuffer, tempBlurBuffer, [1, 0]);
+		// Início do Pipeline de Shaders aplicados a 'gfx'
+		// 'gfx' é lido e o resultado é escrito de volta em 'gfx' para o próximo passo
 
-        // Pass 3: Blur Vertical (lê de tempBlurBuffer, escreve em processedImageBuffer)
-        applyBlur(tempBlurBuffer, processedImageBuffer, [0, 1]);
+		// 2. Aplica distorção de imagem baseada em ruído
+		applyImageDistort(gfx);
 
-        // Pass 4: Grain (lê de processedImageBuffer, escreve em tempBlurBuffer)
-        // Usamos tempBlurBuffer como saída para não sobrescrever processedImageBuffer antes do Mix
-        applyGrain(processedImageBuffer, tempBlurBuffer);
+		// 3. Aplica blur horizontal
+		applyBlur(gfx, [1, 0]);
 
-        // Pass 5: Mix
-        // Mistura 'originalImageBuffer' (imagem original sem distorção)
-        // com 'tempBlurBuffer' (imagem distorcida + blur + grain)
-        // Escreve o resultado final em 'processedImageBuffer'
-        applyMix(originalImageBuffer, tempBlurBuffer, processedImageBuffer, selectedColorTint);
+		// 4. Aplica blur vertical (à imagem já com blur horizontal)
+		applyBlur(gfx, [0, 1]);
 
-        // Desenha o resultado final do pipeline no canvas principal
-        p.image(processedImageBuffer, 0, 0, WIDTH, HEIGHT);
+		// 5. Aplica efeito de granulação
+		applyGrain(gfx);
 
-		if (UNREAL) { // Aplica filtros p5.js padrão se UNREAL for true
-            p.filter(p.DILATE);
-            p.filter(p.POSTERIZE, 4);
-        }
+		// 6. Mistura a textura base ('tex') com a imagem processada em 'gfx'
+		applyMix(tex, gfx, color);
+		
+		// 7. Desenha o resultado final de 'gfx' no canvas principal
+		p.image(gfx, 0, 0)
+
+		// 8. Efeitos "Unreal" opcionais (aplicados ao canvas principal)
+		if (UNREAL) {
+			p.filter(p.DILATE)
+			p.filter(p.POSTERIZE, 4)
+		}
 	}
 
 	const hex2rgb = (hex) => {
-		const bigint = parseInt(hex.replace("#", ""), 16);
+		const bigint = parseInt(hex.replace("#", ""), 16)
 		return [
 			((bigint >> 16) & 255) / 255,
 			((bigint >> 8) & 255) / 255,
 			(bigint & 255) / 255,
-		];
+		]
 	}
 
-    // Função helper para definir uniformes comuns aos shaders
 	const commonUniform = (shaderInstance) => {
-        if (!shaderInstance) { // Guarda para caso o shader não tenha sido carregado
-            console.warn("Tentativa de definir uniformes em shader nulo.");
-            return;
-        }
-		shaderInstance.setUniform("canvasSize", CANVAS_SIZE);
-		shaderInstance.setUniform("texelSize", TEXEL_SIZE);
-		// Normaliza mouseX/mouseY para o shader. MouseY é frequentemente invertido em shaders (0 no topo).
-        // O shader DistortFrag já lida com a inversão de mouse.y se necessário (mouseTexCoord).
-		shaderInstance.setUniform("mouse", [p.mouseX / WIDTH, p.mouseY / HEIGHT]);
-		shaderInstance.setUniform("time", t);
-		shaderInstance.setUniform("scale", SCALE);
+		shaderInstance.setUniform("canvasSize", CANVAS_SIZE)
+		shaderInstance.setUniform("texelSize", TEXEL_SIZE)
+		shaderInstance.setUniform("mouse", [p.mouseX / WIDTH, p.mouseY / HEIGHT])
+		shaderInstance.setUniform("time", t)
+		// 'scale' não é mais um uniform global, mas específico para shaders que o usam.
+		// Para ImageDistortPass, passaremos IMAGE_MOUSE_INFLUENCE_SCALE
+		// Para BlurPass e GrainPass, o 'scale' original era 2.0. Vamos manter isso ou tornar configurável.
 	}
 
-    // Desenha a imagem do usuário no buffer 'originalImageBuffer'
-	const initOriginalImageBuffer = () => {
-        if (!userImage || !userImage.width) {
-            if (originalImageBuffer) { // Se o buffer existe, mostra mensagem de erro nele
-                originalImageBuffer.background(20,0,0);
-                originalImageBuffer.fill(220);
-                originalImageBuffer.textSize(Math.min(WIDTH, HEIGHT) / 25);
-                originalImageBuffer.textAlign(p.CENTER, p.CENTER);
-                originalImageBuffer.text(`Erro: Imagem\n"${IMAGE_PATH}"\nnão encontrada ou inválida.`, WIDTH/2, HEIGHT/2);
-            }
-            console.warn("Imagem do usuário não carregada ou inválida para initOriginalImageBuffer.");
-            return;
-        }
-        originalImageBuffer.push();
-        originalImageBuffer.translate(-WIDTH / 2, -HEIGHT / 2); // Ajusta para desenhar do canto 0,0 em WEBGL
-		originalImageBuffer.image(userImage, 0, 0, WIDTH, HEIGHT); // Estica/encolhe imagem para caber
-        originalImageBuffer.pop();
+	const initTex = () => {
+		tex.shader(TexPass)
+		commonUniform(TexPass)
+		// TexPass pode usar 'scale' se definido no shader, aqui não estamos passando um específico
+		tex.quad(-1, 1, 1, 1, 1, -1, -1, -1)
 	}
 
-    // Aplica o shader de distorção
-    const applyDistortion = (inputTex, outputBuffer) => {
-        if (!DistortPass) return; // Shader não carregado
-        outputBuffer.shader(DistortPass);
-        commonUniform(DistortPass);
-        DistortPass.setUniform("originalImage", inputTex); // Passa a textura de entrada
-        DistortPass.setUniform("noiseStrength", DISTORT_STRENGTH);
-        DistortPass.setUniform("effectRadius", MOUSE_EFFECT_RADIUS);
-        outputBuffer.clear(); // Limpa o buffer de saída (importante para transparência/artefatos)
-        outputBuffer.rect(0, 0, WIDTH, HEIGHT); // Desenha um quad para executar o shader sobre todo o buffer
-    }
-
-    // Aplica o shader de blur
-	const applyBlur = (inputTex, outputBuffer, directionVec) => {
-        if (!BlurPass) return;
-		outputBuffer.shader(BlurPass);
-		commonUniform(BlurPass);
-		BlurPass.setUniform("tex0", inputTex);
-		BlurPass.setUniform("direction", directionVec);
-        outputBuffer.clear();
-		outputBuffer.rect(0, 0, WIDTH, HEIGHT);
+	const applyImageDistort = (inputOutputTex) => {
+		gfx.shader(ImageDistortPass)
+		commonUniform(ImageDistortPass) // Passa time, mouse, canvasSize, texelSize
+		ImageDistortPass.setUniform("tex0", inputOutputTex)
+		ImageDistortPass.setUniform("noiseStrength", IMAGE_NOISE_STRENGTH)
+		ImageDistortPass.setUniform("mouseInfluenceScale", IMAGE_MOUSE_INFLUENCE_SCALE)
+		gfx.quad(-1, 1, 1, 1, 1, -1, -1, -1)
 	}
 
-    // Aplica o shader de granulação
-	const applyGrain = (inputTex, outputBuffer) => {
-        if (!GrainPass) return;
-		outputBuffer.shader(GrainPass);
-		commonUniform(GrainPass);
-		GrainPass.setUniform("tex0", inputTex);
-        outputBuffer.clear();
-		outputBuffer.rect(0, 0, WIDTH, HEIGHT);
+	const applyBlur = (inputOutputTex, direction) => {
+		gfx.shader(BlurPass)
+		commonUniform(BlurPass)
+		BlurPass.setUniform("tex0", inputOutputTex)
+		BlurPass.setUniform("direction", direction)
+		BlurPass.setUniform("scale", 2.0); // O 'scale' original para blur/grain. Pode ser o IMAGE_MOUSE_INFLUENCE_SCALE também
+		gfx.quad(-1, 1, 1, 1, 1, -1, -1, -1)
 	}
 
-    // Aplica o shader de mistura
-	const applyMix = (baseTex, blendTex, outputBuffer, tint) => {
-        if (!MixPass) return;
-		outputBuffer.shader(MixPass);
-		commonUniform(MixPass);
-		MixPass.setUniform("tex0", baseTex);  // Imagem original (ou textura base)
-		MixPass.setUniform("tex1", blendTex); // Imagem processada (distorcida, com blur, etc.)
-		MixPass.setUniform("color", tint);    // Cor para tingir ou misturar
-        outputBuffer.clear();
-		outputBuffer.rect(0, 0, WIDTH, HEIGHT);
+	const applyGrain = (inputOutputTex) => {
+		gfx.shader(GrainPass)
+		commonUniform(GrainPass)
+		GrainPass.setUniform("tex0", inputOutputTex)
+		GrainPass.setUniform("scale", 2.0); // O 'scale' original para blur/grain.
+		gfx.quad(-1, 1, 1, 1, 1, -1, -1, -1)
 	}
-});
+
+	const applyMix = (baseTex, blendTex, mixColor) => {
+		gfx.shader(MixPass)
+		commonUniform(MixPass) // MixPass não usa 'time' ou 'mouse' diretamente, mas commonUniform é inofensivo
+		MixPass.setUniform("tex0", baseTex)  // Textura de fundo (do TexPass)
+		MixPass.setUniform("tex1", blendTex) // Textura da imagem processada (de GrainPass)
+		MixPass.setUniform("color", mixColor)   // Cor para misturar
+		gfx.quad(-1, 1, 1, 1, 1, -1, -1, -1)
+	}
+})
